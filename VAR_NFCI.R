@@ -93,15 +93,3 @@ var_rmse = sqrt(mean(var_error^2))
 
 improvement = ((var_rmse - wn_rmse) / wn_rmse) * 100
 improvement
-
-plot(forecasts[,1])
-lines(forecasts[,2],col="green")
-lines(forecasts[,3],col="blue")
-  
-
-plot(data[,2],data[,1])
-abline(lm(data[,1]~data[,2]),col="red")
-model = lm(data[,1]~data[,2])
-
-
-
