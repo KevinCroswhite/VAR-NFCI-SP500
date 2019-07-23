@@ -11,16 +11,18 @@ library(tseries)
 ### SP500
 SP500 <- getSymbols('^GSPC',from='1971-01-08',auto.assign=FALSE,periodicity = 'monthly')
 SP500.ts <- ts(SP500[,6], start=c(1971,2), frequency=12)
-SP500.l <- log(SP500.ts)
-SP500.d.l <- diff(SP500.l)
+SP500.per = (diff(SP500[,6])/SP500[-nrow(SP500),6]) + 1
+SP500.l = log(SP500.per)
+SP500.l = na.omit(SP500.l)
+
 ### NFCI 
 NFCI <- getSymbols('NFCI',src='FRED',auto.assign=FALSE,periodicity = "monthly")
 NFCI.m <- period.apply(NFCI, endpoints(NFCI, on = "months"), last)
-NFCI.x = ts(NFCI.m, start=c(1971,2),frequency=12)
 NFCI.d <- diff(NFCI.x)
+NFCI.d = NFCI.d[1:580]
+NFCI.d = ts(NFCI.d, start=c(1971,3),frequency=12)
 ### Merge
-data <- cbind(SP500.d.l,NFCI.d)
-data <- data[1:581,]
+data <- cbind(SP500.l,NFCI.d)
 data = ts(data,start=c(1971,3),frequency=12)
 
 ###
@@ -65,15 +67,15 @@ for(i in 1:n){
   MRKT_INDEX.wn.test <- SP500.wn[1:n.end+i-1]
   wn.model <- arima(MRKT_INDEX.wn.test,order=c(0,0,0))
   fcast.wn[i] <- predict(wn.model,n.ahead=1,se.fit=FALSE)
-  fcast.wn.actual[i,1] = exp(fcast.wn[i]) + SP500[n.end+i-1,6]
+  fcast.wn.actual[i,1] = exp(fcast.wn[i]) * SP500[n.end+i-1,6]
   fcast.wn.actual[i,2] = SP500[n.end+i,6]
   
 
   nfci.test <- data[1:n.end+i-1,] 
   var.nfci <- VAR(nfci.test,lag.max=10,type="const",ic="SC")
   pred.var.nfci <- predict(var.nfci,n.ahead=1,se.fit=FALSE)
-  fcast.var.nfci[i] <- pred.var.nfci$fcst$SP500.d.l[1]
-  fcast.var.actual[i,1] = exp(pred.var.nfci$fcst$SP500.d.l[1]) + SP500[n.end+i-1,6]
+  fcast.var.nfci[i] <- pred.var.nfci$fcst$GSPC.Adjusted[1]
+  fcast.var.actual[i,1] = exp(pred.var.nfci$fcst$GSPC.Adjusted[1]) * SP500[n.end+i-1,6]
   fcast.var.actual[i,2] = SP500[n.end+i,6]
   
 }
@@ -91,5 +93,15 @@ var_rmse = sqrt(mean(var_error^2))
 
 improvement = ((var_rmse - wn_rmse) / wn_rmse) * 100
 improvement
+
+plot(forecasts[,1])
+lines(forecasts[,2],col="green")
+lines(forecasts[,3],col="blue")
+  
+
+plot(data[,2],data[,1])
+abline(lm(data[,1]~data[,2]),col="red")
+model = lm(data[,1]~data[,2])
+
 
 
